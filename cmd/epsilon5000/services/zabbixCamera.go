@@ -3,7 +3,7 @@ package services
 import "awesomeProject/cmd/epsilon5000/models"
 
 type zabbixCameraDAO interface {
-	Get(id models.Id) ([]models.СameraIncidents ,error)
+	Get(id models.Id) ([]models.СameraIncidents, error)
 }
 
 type zabbixCamera struct {

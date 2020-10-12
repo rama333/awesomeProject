@@ -3,16 +3,19 @@ package daos
 import (
 	"awesomeProject/cmd/epsilon5000/config"
 	"awesomeProject/cmd/epsilon5000/models"
-	"encoding/json"
 	"fmt"
 	"github.com/mitchellh/mapstructure"
-	"io/ioutil"
-	"net/http"
-	"strings"
+	"time"
 )
 
-type ZabbixCameraDAO struct {
+type InfoCamera struct {
+	Id          int    `json:"id"`
+	Host_       string `json:"host"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
 
+type ZabbixCameraDAO struct {
 }
 
 func NewZabbixDAO() *ZabbixCameraDAO {
@@ -20,107 +23,74 @@ func NewZabbixDAO() *ZabbixCameraDAO {
 	return &ZabbixCameraDAO{}
 }
 
-type requestData struct {
-	JSONRPC string      `json:"jsonrpc"`
-	Method  string      `json:"method"`
-	Params  interface{} `json:"params,omitempty"`
-	Auth    string      `json:"auth,omitempty"`
-	ID      int         `json:"id"`
-}
-
-type responseData struct {
-	JSONRPC string      `json:"jsonrpc"`
-	Result  interface{} `json:"result"`
-	Error   struct {
-		Code    int    `json:"code"`
-		Message string `json:"message"`
-		Data    string `json:"data"`
-	} `json:"error"`
-	ID int `json:"id"`
-}
-
-
-func Request(method string, params interface{}, result interface{}){
-
-	resp := responseData{
-		Result: result,
-	}
-
-	req := requestData{
-		JSONRPC: "2.0",
-		Method:  method,
-		Params:  params,
-		Auth:    "null",
-		ID:      1,
-	}
-
-	s, _ := json.Marshal(req)
-
-
-	re, _ := http.NewRequest("POST", config.Config.ZbxHost, strings.NewReader(string(s)))
-
-
-	// Set headers
-	re.Header.Add("Content-Type", "application/json-rpc")
-
-	// Make request
-	res, _ := http.DefaultClient.Do(re)
-
-	defer res.Body.Close()
-
-	if res.StatusCode != 200 {
-		if bodyBytes, err := ioutil.ReadAll(res.Body); err == nil {
-			fmt.Println(bodyBytes)
-		}
-	} else {
-		if result != nil {
-
-			rawConf := make(map[string]interface{})
-
-			dJ := json.NewDecoder(res.Body)
-			if err := dJ.Decode(&rawConf); err != nil {
-				fmt.Errorf("json decode error: %v", err)
-			}
-
-			dM, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-				WeaklyTypedInput: true,
-				Result:           resp,
-				TagName:          "json",
-			})
-			if err != nil {
-				fmt.Errorf("mapstructure create decoder error: %v", err)
-			}
-
-			if err := dM.Decode(rawConf); err != nil {
-				fmt.Errorf("mapstructure decode error: %v", err)
-			}
-
-			fmt.Println(rawConf)
-		}
-	}
-
-	fmt.Println(resp)
-
-}
-
-
-func (s ZabbixCameraDAO) Get(id models.Id) ([]models.СameraIncidents, error)  {
+func (s ZabbixCameraDAO) Get(id models.Id) ([]models.СameraIncidents, error) {
 
 	//var z zabbix.Context
 	list := []models.СameraIncidents{}
 
+	var z Context
 
+	if err := z.Login(config.Config.ZbxHost, config.Config.ZbxLogin, config.Config.ZbxPassword); err != nil {
+		fmt.Println("Login error:", err)
+	}
 
+	fmt.Println(z.sessionKey)
 
+	unixTime := time.Now().Unix() - 86400
 
+	//time := time.Unix(unixTime, 0)
 
+	//fmt.Println(tt.Format("2006-01-02 15:04:05"))
 
+	res, err := z.GetEvent(EventObject{
+		Groupids:              []int{38, 160, 149},
+		Time_from:             unixTime,
+		Output:                "extend",
+		Sortfield:             []string{"clock", "eventid"},
+		Sortorder:             "DESC",
+		SelectRelatedObject:   []string{"name", "description"},
+		SelectHosts:           []string{"name", "description", "host", "interfaceids"},
+		SelectAcknowledges:    "extend",
+		SelectTags:            "extend",
+		SelectSuppressionData: "extend",
+		Recent:                "true",
+	})
 
-	Request()
+	if err != nil {
+		fmt.Println(err)
+	}
 
+	//fmt.Println(res
 
+	//test := res.([]EventResult)
 
-	list = append(list, models.СameraIncidents{"h","","h.Host","",""})
+	//fmt.Println(res["host"])
+
+	var result []EventResult
+
+	err = mapstructure.Decode(res, &result)
+	if err != nil {
+		panic(err)
+	}
+
+	//var p =  make(map[int][]InfoCamera)
+	//
+	//for i, obj := range result{
+	//
+	//	p[5] = append(p[5], InfoCamera{Id: 5,Host_: "", Name: "", Description: ""})
+	//}
+	//
+	//var host Host
+	//err1 := mapstructure.Decode(result[0].Hosts, &host)
+	//if err1 != nil {
+	//	fmt.Println(err1)
+	//}
+	//
+	//
+	fmt.Println(result[0].Hosts[0].Name)
+	fmt.Println(result[0].Hosts[0].Host)
+
+	list = append(list, models.СameraIncidents{"h", "", "h.Host", "", ""})
 
 	return list, nil
 }

@@ -1,7 +1,7 @@
 package models
 
 type ResponseError struct {
-	Status string
+	Status      string
 	Description string
 }
 
@@ -13,6 +13,12 @@ type ServicesCount struct {
 	Addr string `json:"addr"`
 }
 
+type ResponseData struct {
+	Code    int             `json:"code"`
+	Message string          `json:"message"`
+	Data    []ServicesCount `json:"data,omitempty"`
+}
+
 type Ip struct {
 	Ip []string `json:"ip"`
 }
@@ -22,11 +28,9 @@ type Id struct {
 }
 
 type СameraIncidents struct {
-	Start string `json:"start"`
-	Stop string `json:"stop"`
-	Host string `json:"host"`
-	Name string `json:"name"`
+	Start    string `json:"start"`
+	Stop     string `json:"stop"`
+	Host     string `json:"host"`
+	Name     string `json:"name"`
 	Duration string `json:"duration"`
 }
-
-
